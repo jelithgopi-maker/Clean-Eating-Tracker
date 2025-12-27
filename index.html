@@ -2,64 +2,207 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instant Meal Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clean Eating Tracker</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a73e8">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2927/2927347.png">
+
     <style>
-        :root { --primary: #1a73e8; --success: #2e7d32; --danger: #d93025; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; }
-        .app-container { background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 480px; }
+        :root { --primary: #1a73e8; --success: #2e7d32; --danger: #d93025; --neutral: #70757a; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .app-container { background: white; padding: 20px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 480px; min-height: 95vh; }
         
-        /* View Toggles */
-        .view-nav { display: flex; background: #f1f3f4; border-radius: 12px; margin-bottom: 20px; padding: 5px; }
+        .view-nav { display: flex; background: #f1f3f4; border-radius: 12px; margin-bottom: 15px; padding: 5px; }
         .view-nav button { flex: 1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; background: transparent; font-weight: 600; color: #5f6368; }
         .view-nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 
-        /* Instant Log Buttons */
-        .meal-card { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
-        .meal-info { display: flex; flex-direction: column; }
-        .meal-label { font-weight: bold; font-size: 16px; color: #333; }
-        .meal-time { font-size: 11px; color: #999; margin-top: 4px; }
-        
-        .status-btn { width: 120px; padding: 12px; border-radius: 12px; border: 2px solid #eee; cursor: pointer; font-weight: bold; font-size: 13px; text-transform: uppercase; }
-        .is-healthy { background: #e8f5e9; color: var(--success); border-color: #a5d6a7; }
-        .is-unhealthy { background: #ffebee; color: var(--danger); border-color: #ef9a9a; }
-
-        /* Stats Card */
-        .stats-banner { background: var(--primary); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center; }
-        .stats-banner big { font-size: 32px; font-weight: 800; display: block; }
-        
-        .date-strip { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 15px; margin-bottom: 20px; scrollbar-width: none; }
-        .date-item { min-width: 50px; padding: 10px; background: #f8f9fa; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid #eee; }
-        .date-item.active { background: #333; color: white; }
-
         .content-section { display: none; }
         .content-section.active { display: block; }
-        .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+
+        /* Weekly Chart Styles */
+        .chart-container { display: flex; align-items: flex-end; justify-content: space-around; height: 100px; padding: 10px 0; background: #fdfdfd; border: 1px solid #f0f0f0; border-radius: 15px; margin-bottom: 20px; }
+        .chart-bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 12%; height: 100%; justify-content: flex-end; }
+        .chart-bar { width: 100%; background: var(--primary); border-radius: 4px 4px 0 0; transition: height 0.5s ease; min-height: 2px; }
+        .chart-label { font-size: 9px; color: #888; margin-top: 4px; font-weight: bold; }
+
+        .stats-banner { background: var(--primary); color: white; padding: 15px; border-radius: 16px; margin-bottom: 15px; text-align: center; }
+        .stats-banner big { font-size: 28px; font-weight: 800; display: block; }
+
+        .meal-card { background: #fff; border: 1px solid #eee; padding: 12px; border-radius: 16px; margin-bottom: 10px; }
+        .meal-label { font-weight: bold; display: block; margin-bottom: 8px; font-size: 14px; }
+        
+        .btn-group { display: flex; gap: 4px; }
+        .btn-group button { flex: 1; padding: 10px 2px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; font-size: 10px; font-weight: bold; transition: 0.2s; }
+        
+        .btn-h.active { background: #e8f5e9; color: var(--success); border-color: var(--success); }
+        .btn-u.active { background: #ffebee; color: var(--danger); border-color: var(--danger); }
+        .btn-n.active { background: #f1f3f4; color: var(--neutral); border-color: var(--neutral); }
+
+        .date-strip { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
+        .date-item { min-width: 42px; padding: 8px; background: #f8f9fa; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid #eee; }
+        .date-item.active { background: #333; color: white; }
+        
+        .footer-btns { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .footer-btns button { padding: 12px; border-radius: 8px; border: 1px solid #ccc; background: white; cursor: pointer; font-size: 14px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="view-nav">
-        <button id="btn-day" class="active" onclick="showView('day')">Log</button>
-        <button id="btn-month" onclick="showView('month')">Monthly</button>
-        <button id="btn-year" onclick="showView('year')">Yearly</button>
+        <button id="btn-day" class="active" onclick="showView('day')">Daily</button>
+        <button id="btn-month" onclick="showView('month')">History</button>
+        <button id="btn-year" onclick="showView('year')">Settings</button>
     </div>
 
     <div id="view-day" class="content-section active">
         <div class="date-strip" id="date-strip"></div>
+        
+        <div class="chart-container" id="weekly-chart"></div>
+
         <div class="stats-banner">
-            <small>Today's Health Score</small>
+            <small id="score-label">Today's Score</small>
             <big id="day-score">0%</big>
         </div>
-
-        <div id="meal-list">
-            </div>
-        <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">Changes are saved instantly.</p>
+        <div id="meal-list"></div>
     </div>
 
     <div id="view-month" class="content-section">
-        <div id="month-list"></div>
+        <div id="month-list" style="padding: 10px;"></div>
+    </div>
+
+    <div id="view-year" class="content-section">
+        <h3>Data & Tools</h3>
+        <div class="footer-btns">
+            <button onclick="exportCSV()">📊 Download CSV (for Google Sheets)</button>
+            <button onclick="clearData()" style="color: var(--danger); border-color: #ef9a9a;">⚠️ Clear All History</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('mealTrackerFull')) || {};
+    let activeDate = new Date().toISOString().split('T')[0];
+    const mealNames = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+
+    function showView(view) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.view-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-' + view).classList.add('active');
+        document.getElementById('btn-' + view).classList.add('active');
+        if(view === 'month') renderMonthly();
+        if(view === 'day') { renderDay(); renderWeeklyChart(); }
+    }
+
+    function renderStrip() {
+        const strip = document.getElementById('date-strip');
+        strip.innerHTML = '';
+        for(let i=0; i<10; i++) {
+            let d = new Date(); d.setDate(d.getDate() - i);
+            let ds = d.toISOString().split('T')[0];
+            let item = document.createElement('div');
+            item.className = `date-item ${ds === activeDate ? 'active' : ''}`;
+            item.innerHTML = `<div>${d.getDate()}</div><small>${d.toLocaleString('default', {weekday: 'short'})}</small>`;
+            item.onclick = () => { activeDate = ds; renderDay(); renderStrip(); };
+            strip.appendChild(item);
+        }
+    }
+
+    function calculateDayScore(date) {
+        const data = db[date] || { meals: [0,0,0,0] };
+        let healthy = 0, applicable = 0;
+        data.meals.forEach(status => {
+            if(status === 1) healthy++;
+            if(status !== 2) applicable++;
+        });
+        return applicable > 0 ? Math.round((healthy/applicable)*100) : 0;
+    }
+
+    function renderWeeklyChart() {
+        const chart = document.getElementById('weekly-chart');
+        chart.innerHTML = '';
+        const today = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(today.getDate() - i);
+            let ds = d.toISOString().split('T')[0];
+            let score = calculateDayScore(ds);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chart-bar-wrapper';
+            wrapper.innerHTML = `
+                <div class="chart-bar" style="height: ${score}%; background: ${ds === activeDate ? 'var(--primary)' : '#ccc'}"></div>
+                <div class="chart-label">${d.toLocaleString('default', {weekday: 'narrow'})}</div>
+            `;
+            chart.appendChild(wrapper);
+        }
+    }
+
+    function renderDay() {
+        const list = document.getElementById('meal-list');
+        list.innerHTML = '';
+        const data = db[activeDate] || { meals: [0,0,0,0] };
+        
+        mealNames.forEach((name, i) => {
+            const status = data.meals[i];
+            const card = document.createElement('div');
+            card.className = 'meal-card';
+            card.innerHTML = `
+                <span class="meal-label">${name}</span>
+                <div class="btn-group">
+                    <button onclick="setStatus(${i}, 1)" class="btn-h ${status===1?'active':''}">Healthy</button>
+                    <button onclick="setStatus(${i}, 0)" class="btn-u ${status===0?'active':''}">Unhealthy</button>
+                    <button onclick="setStatus(${i}, 2)" class="btn-n ${status===2?'active':''}">N/A</button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+        document.getElementById('day-score').innerText = calculateDayScore(activeDate) + "%";
+        renderWeeklyChart();
+    }
+
+    function setStatus(mealIdx, status) {
+        if(!db[activeDate]) db[activeDate] = { meals: [0,0,0,0] };
+        db[activeDate].meals[mealIdx] = status;
+        localStorage.setItem('mealTrackerFull', JSON.stringify(db));
+        renderDay();
+    }
+
+    function renderMonthly() {
+        const container = document.getElementById('month-list');
+        container.innerHTML = '<h4>Daily History</h4>';
+        Object.keys(db).sort().reverse().forEach(date => {
+            const pct = calculateDayScore(date);
+            container.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;"><span>${date}</span><strong>${pct}%</strong></div>`;
+        });
+    }
+
+    function exportCSV() {
+        let csv = "Date,Meal,Status\n";
+        Object.keys(db).forEach(date => {
+            db[date].meals.forEach((status, i) => {
+                let sText = status === 1 ? "Healthy" : (status === 2 ? "Skipped" : "Unhealthy");
+                csv += `${date},${mealNames[i]},${sText}\n`;
+            });
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'nutrition-export.csv');
+        a.click();
+    }
+
+    function clearData() { if(confirm("Permanently delete everything?")) { localStorage.clear(); location.reload(); } }
+
+    renderStrip();
+    renderDay();
+    renderWeeklyChart();
+</script>
+</body>
+</html>
     </div>
 
     <div id="view-year" class="content-section">
@@ -159,3 +302,4 @@
 </script>
 </body>
 </html>
+
