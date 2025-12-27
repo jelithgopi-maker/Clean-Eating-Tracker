@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Meal Tracker</title>
+    <style>
+        :root { --primary: #1a73e8; --success: #2e7d32; --danger: #d93025; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; }
+        .app-container { background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 480px; }
+        
+        /* View Toggles */
+        .view-nav { display: flex; background: #f1f3f4; border-radius: 12px; margin-bottom: 20px; padding: 5px; }
+        .view-nav button { flex: 1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; background: transparent; font-weight: 600; color: #5f6368; }
+        .view-nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+        /* Instant Log Buttons */
+        .meal-card { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .meal-info { display: flex; flex-direction: column; }
+        .meal-label { font-weight: bold; font-size: 16px; color: #333; }
+        .meal-time { font-size: 11px; color: #999; margin-top: 4px; }
+        
+        .status-btn { width: 120px; padding: 12px; border-radius: 12px; border: 2px solid #eee; cursor: pointer; font-weight: bold; font-size: 13px; text-transform: uppercase; }
+        .is-healthy { background: #e8f5e9; color: var(--success); border-color: #a5d6a7; }
+        .is-unhealthy { background: #ffebee; color: var(--danger); border-color: #ef9a9a; }
+
+        /* Stats Card */
+        .stats-banner { background: var(--primary); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center; }
+        .stats-banner big { font-size: 32px; font-weight: 800; display: block; }
+        
+        .date-strip { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 15px; margin-bottom: 20px; scrollbar-width: none; }
+        .date-item { min-width: 50px; padding: 10px; background: #f8f9fa; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid #eee; }
+        .date-item.active { background: #333; color: white; }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="view-nav">
+        <button id="btn-day" class="active" onclick="showView('day')">Log</button>
+        <button id="btn-month" onclick="showView('month')">Monthly</button>
+        <button id="btn-year" onclick="showView('year')">Yearly</button>
+    </div>
+
+    <div id="view-day" class="content-section active">
+        <div class="date-strip" id="date-strip"></div>
+        <div class="stats-banner">
+            <small>Today's Health Score</small>
+            <big id="day-score">0%</big>
+        </div>
+
+        <div id="meal-list">
+            </div>
+        <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">Changes are saved instantly.</p>
+    </div>
+
+    <div id="view-month" class="content-section">
+        <div id="month-list"></div>
+    </div>
+
+    <div id="view-year" class="content-section">
+        <div id="year-list"></div>
+    </div>
+</div>
+
+<script>
+    // Database Structure: { "YYYY-MM-DD": { meals: [true, false...], times: ["12:00", ""] } }
+    let db = JSON.parse(localStorage.getItem('instantMealDB')) || {};
+    let activeDate = new Date().toISOString().split('T')[0];
+    const mealNames = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+
+    function showView(view) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.view-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-' + view).classList.add('active');
+        document.getElementById('btn-' + view).classList.add('active');
+        if(view === 'month') renderMonthly();
+        if(view === 'year') renderYearly();
+    }
+
+    function renderStrip() {
+        const strip = document.getElementById('date-strip');
+        strip.innerHTML = '';
+        for(let i=0; i<10; i++) {
+            let d = new Date(); d.setDate(d.getDate() - i);
+            let ds = d.toISOString().split('T')[0];
+            let item = document.createElement('div');
+            item.className = `date-item ${ds === activeDate ? 'active' : ''}`;
+            item.innerHTML = `<div>${d.getDate()}</div><small>${d.toLocaleString('default', {weekday: 'short'})}</small>`;
+            item.onclick = () => { activeDate = ds; renderDay(); renderStrip(); };
+            strip.appendChild(item);
+        }
+    }
+
+    function renderDay() {
+        const list = document.getElementById('meal-list');
+        list.innerHTML = '';
+        const data = db[activeDate] || { meals: [false, false, false, false], times: ["", "", "", ""] };
+        
+        let healthyCount = 0;
+        mealNames.forEach((name, i) => {
+            if(data.meals[i]) healthyCount++;
+            const card = document.createElement('div');
+            card.className = 'meal-card';
+            card.innerHTML = `
+                <div class="meal-info">
+                    <span class="meal-label">${name}</span>
+                    <span class="meal-time">${data.times[i] ? 'Logged at ' + data.times[i] : 'Not logged yet'}</span>
+                </div>
+                <button onclick="instantToggle(${i})" class="status-btn ${data.meals[i] ? 'is-healthy' : 'is-unhealthy'}">
+                    ${data.meals[i] ? 'Healthy' : 'Unhealthy'}
+                </button>
+            `;
+            list.appendChild(card);
+        });
+
+        document.getElementById('day-score').innerText = (healthyCount / 4 * 100) + "%";
+    }
+
+    function instantToggle(index) {
+        if (!db[activeDate]) {
+            db[activeDate] = { meals: [false, false, false, false], times: ["", "", "", ""] };
+        }
+        
+        // Toggle health status
+        db[activeDate].meals[index] = !db[activeDate].meals[index];
+        
+        // Update time only if setting to healthy or if it was empty
+        const now = new Date();
+        const timeStr = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+        db[activeDate].times[index] = timeStr;
+
+        localStorage.setItem('instantMealDB', JSON.stringify(db));
+        renderDay();
+    }
+
+    function renderMonthly() {
+        const container = document.getElementById('month-list');
+        container.innerHTML = '<h3>Monthly History</h3>';
+        Object.keys(db).sort().reverse().forEach(date => {
+            const count = db[date].meals.filter(m => m).length;
+            container.innerHTML += `<div class="row"><span>${date}</span><strong>${count}/4 Healthy</strong></div>`;
+        });
+    }
+
+    function renderYearly() {
+        const container = document.getElementById('year-list');
+        container.innerHTML = '<h3>Yearly Overview</h3>';
+        // Simplified for this demo
+        container.innerHTML += `<p>Total Healthy Choices: ${Object.values(db).flat().reduce((acc, day) => acc + day.meals.filter(m=>m).length, 0)}</p>`;
+    }
+
+    renderStrip();
+    renderDay();
+</script>
+</body>
+</html>
